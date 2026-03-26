@@ -86,65 +86,27 @@ function initDLButtons() {
                     }
                 }
 
-                if (!chat_id || !response_id) {
-                    throw new Error("チャットへのリンク(ID)が見つかりません。リストインデックスからもフォールバック抽出でも取得できませんでした。");
-                }
-
-                // CSRF トークンの取得
-                const wizScript = Array.from(document.querySelectorAll('script')).find(s => s.textContent.includes('WIZ_global_data'));
-                let atToken = '';
-                if (wizScript) {
-                    const match = wizScript.textContent.match(/"SNlM0e":"([^"]+)"/);
-                    if (match && match[1]) {
-                        atToken = match[1];
-                    }
-                }
-
+                // --- フルサイズ画像URLの生成（メインロジック） ---
+                // 分析の結果、c8o8Fe APIはプロンプトや詳細なセッショントークンが必要であり一覧画面からは利用不可能なため、
+                // GoogleのLH3画像サーバーの仕様を利用したURLパラメータ書き換えによる直接取得を行います。
+                
                 const imgSrc = img.src;
-                const hashMatch = imgSrc.match(/\/([a-zA-Z0-9_\-]+)=/);
-                const image_token = hashMatch ? hashMatch[1] : null;
-
                 let fullUrl = "";
 
-                // APIリクエストの試行
-                try {
-                    let reqArray = [chat_id, response_id];
-                    if (image_token) reqArray.push(image_token);
-                    
-                    const freq = JSON.stringify([ [ ["c8o8Fe", JSON.stringify(reqArray), null, "generic"] ] ]);
-                    const bodyObj = new URLSearchParams();
-                    bodyObj.append('f.req', freq);
-                    if (atToken) bodyObj.append('at', atToken);
-
-                    const response = await fetch(`/_/BardChatUi/data/batchexecute?rpcids=c8o8Fe`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-                        },
-                        body: bodyObj.toString()
-                    });
-
-                    if (!response.ok) throw new Error("APIレスポンスエラー");
-                    const text = await response.text();
-                    
-                    const dlUrlMatch = text.match(/"(https:\/\/lh3\.googleusercontent\.com\/(?:gg-dl|rd-gg-dl)\/[^"]+)"/);
-                    if (dlUrlMatch && dlUrlMatch[1]) {
-                        fullUrl = dlUrlMatch[1];
-                    } else {
-                        throw new Error("レスポンス内にダウンロードURLが見つかりません");
-                    }
-                } catch (apiErr) {
-                    console.warn(`[GeminiDL] batchexecute APIからのURL取得に失敗しました。推測URLにフォールバックします: ${apiErr.message}`);
-                    if (imgSrc.includes('/gg/')) {
-                        fullUrl = imgSrc.replace('/gg/', '/gg-dl/').split('=')[0] + '=s0-d';
-                    } else if (imgSrc.includes('/rd-gg/')) {
-                        fullUrl = imgSrc.replace('/rd-gg/', '/rd-gg-dl/').split('=')[0] + '=s0-d';
-                    } else {
-                        fullUrl = imgSrc.split('=')[0] + '=s0-d';
-                    }
+                if (imgSrc.includes('/gg/')) {
+                    fullUrl = imgSrc.replace('/gg/', '/gg-dl/').split('=')[0] + '=s0-d';
+                } else if (imgSrc.includes('/rd-gg/')) {
+                    fullUrl = imgSrc.replace('/rd-gg/', '/rd-gg-dl/').split('=')[0] + '=s0-d';
+                } else {
+                    fullUrl = imgSrc.split('=')[0] + '=s0-d';
                 }
 
-                await downloadImage(fullUrl, `gemini_original_${chat_id}.jpg`);
+                // IDが取得できなかった場合もダウンロードは強行する
+                const safeChatId = chat_id || "unknown";
+                const safeResId = response_id || "unknown";
+
+                // フルサイズ画像をダウンロード
+                await downloadImage(fullUrl, `gemini_original_${safeChatId}_${safeResId}.jpg`);
 
             } catch (err) {
                 console.error("GeminiDL Error:", err);
