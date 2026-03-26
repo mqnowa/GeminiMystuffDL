@@ -102,19 +102,27 @@
 /* 範囲選択中のカードホバーエフェクト */
 body.gemini-dl-selecting .library-item-card {
     cursor: pointer !important;
-    transition: outline 0.1s, background-color 0.1s;
+    transition: background-color 0.1s;
 }
 
 /* ホバー中のハイライト（水色または任意の色） */
 .library-item-card.gemini-dl-hover-range {
-    outline: 3px solid #00bcd4 !important;
-    outline-offset: -3px;
     background-color: rgba(0, 188, 212, 0.15);
+}
+.library-item-card.gemini-dl-hover-range img,
+.library-item-card.gemini-dl-hover-range video {
+    outline: 4px solid #00bcd4 !important;
+    outline-offset: -4px !important;
+    border-radius: inherit;
 }
 
 /* 確定後の範囲枠（水色） */
 .library-item-card.gemini-dl-selected-range {
-    outline: 3px solid #00bcd4 !important;
-    outline-offset: -3px;
     background-color: rgba(0, 188, 212, 0.2);
+}
+.library-item-card.gemini-dl-selected-range img,
+.library-item-card.gemini-dl-selected-range video {
+    outline: 4px solid #00bcd4 !important;
+    outline-offset: -4px !important;
+    border-radius: inherit;
 }
