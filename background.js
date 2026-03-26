@@ -1,5 +1,16 @@
 // background.js
 
+let waitingDownloads = [];
+
+chrome.downloads.onCreated.addListener((downloadItem) => {
+    console.log(`[GeminiDL] Global download detected:`, downloadItem.url);
+    if (waitingDownloads.length > 0) {
+        const req = waitingDownloads.shift();
+        req.cleanUpAndClose();
+        req.doResponse("success");
+    }
+});
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.type === "DOWNLOAD_FULL_SIZE") {
         const { chatId, responseId } = request;
@@ -7,64 +18,80 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         
         console.log(`[GeminiDL] Opening background tab for: ${targetUrl}`);
         
-        // 非アクティブなタブを新規作成して該当チャットを開く
         chrome.tabs.create({ url: targetUrl, active: false }, (tab) => {
             const tabId = tab.id;
+            let responded = false;
             
-            // 該当ページ内で実行されるスクリプト
-            // .generated-image-button を探してクリックする
+            const doResponse = (status) => {
+                if (!responded) {
+                    responded = true;
+                    sendResponse({ status: status });
+                }
+            };
+            
+            const cleanUpAndClose = () => {
+                waitingDownloads = waitingDownloads.filter(item => item.tabId !== tabId);
+                clearTimeout(timeoutId);
+                chrome.tabs.remove(tabId).catch(() => {});
+            };
+
+            // タイムアウト設定 (最長120秒待つ)
+            const timeoutId = setTimeout(() => {
+                console.log(`[GeminiDL] Timeout reached for tab ${tabId}. Forcing close.`);
+                cleanUpAndClose();
+                doResponse("timeout");
+            }, 120000);
+
             const executeClick = (rId) => {
                 return new Promise((resolve) => {
-                    console.log("[GeminiDL Script] Waiting for download button...");
-                    
                     const checkExist = setInterval(() => {
-                        // ハッシュから特定の応答メッセージブロック内のダウンロードボタンを探す
-                        // rId には 'c_...' などが付いている場合もあるが、URLハッシュは純粋なID
                         const btn = document.querySelector(`[data-message-id="${rId}"] .generated-image-button`) ||
-                                    document.querySelector(`.generated-image-button`); // フォールバック
+                                    document.querySelector(`.generated-image-button`);
                         
                         if (btn) {
                             console.log("[GeminiDL Script] Found download button. Clicking.");
                             clearInterval(checkExist);
                             btn.click();
-                            
-                            // クリック後、サーバー側でのアップスケールとダウンロード開始までにラグがあるため待機
-                            // 10秒ほど待ってから完了としてタブを閉じる準備をする
-                            setTimeout(() => resolve(true), 10000); 
+                            // クリックできたことを即座に返す（タブは background.js が監視して閉じる）
+                            resolve(true); 
                         }
-                    }, 500); // 0.5秒おきにチェック
+                    }, 500);
                     
-                    // 30秒見つからなければタイムアウトとして諦める
                     setTimeout(() => {
                         clearInterval(checkExist);
-                        console.log("[GeminiDL Script] Timeout waiting for download button.");
                         resolve(false);
                     }, 30000);
                 });
             };
 
-            // タブの完全な読み込みを待つ
             chrome.tabs.onUpdated.addListener(function listener(tId, changeInfo) {
                 if (tId === tabId && changeInfo.status === 'complete') {
                     chrome.tabs.onUpdated.removeListener(listener);
                     
                     console.log(`[GeminiDL] Injecting script to tab ${tabId}`);
-                    // DOMが構築されたのでスクリプトを実行してボタンを押させる
                     chrome.scripting.executeScript({
                         target: { tabId: tabId },
                         func: executeClick,
                         args: [responseId]
                     }).then((results) => {
-                        console.log(`[GeminiDL] Execution complete. Removing tab ${tabId}. Result:`, results);
-                        chrome.tabs.remove(tabId);
+                        console.log(`[GeminiDL] Click execution finished. Waiting for download to start...`);
+                        
+                        if (results && results[0] && results[0].result) {
+                            // ボタンクリックが成功したタブを待機キューに追加
+                            waitingDownloads.push({ tabId, cleanUpAndClose, doResponse });
+                        } else {
+                            // 失敗時は即座に閉じる
+                            cleanUpAndClose();
+                            doResponse("error");
+                        }
                     }).catch(err => {
                         console.error("[GeminiDL] Error executing script:", err);
-                        chrome.tabs.remove(tabId); // エラー時もゴミを残さないために閉じる
+                        cleanUpAndClose();
+                        doResponse("error");
                     });
                 }
             });
         });
-        sendResponse({status: "started"});
     }
-    return true; // 非同期でsendResponseを呼ぶ場合は必須だが、今回は即返す
+    return true; 
 });

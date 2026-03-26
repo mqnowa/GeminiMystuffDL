@@ -37,3 +37,80 @@
 .library-item-card {
     position: relative;
 }
+
+/* 範囲ダウロード用UI */
+.gemini-dl-panel {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    z-index: 9999;
+    font-family: "Google Sans", sans-serif;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    backdrop-filter: blur(8px);
+}
+
+.gemini-dl-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.gemini-dl-input-n {
+    width: 50px;
+    padding: 4px;
+    border-radius: 4px;
+    border: 1px solid #555;
+    background: #222;
+    color: white;
+    text-align: right;
+}
+
+.gemini-dl-status {
+    font-size: 12px;
+    color: #ccc;
+    text-align: center;
+}
+
+.gemini-dl-banner {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(26, 115, 232, 0.9);
+    color: white;
+    padding: 10px 24px;
+    border-radius: 20px;
+    font-size: 16px;
+    font-weight: bold;
+    z-index: 9999;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    pointer-events: none;
+    display: none;
+}
+
+.gemini-dl-banner.show {
+    display: block;
+}
+
+/* 範囲選択中のカードホバーエフェクト */
+body.gemini-dl-selecting .library-item-card {
+    cursor: pointer !important;
+    transition: outline 0.2s;
+}
+
+body.gemini-dl-selecting .library-item-card:hover {
+    outline: 3px solid #1a73e8;
+    outline-offset: -3px;
+}
+
+.library-item-card.gemini-dl-selected {
+    outline: 3px solid #34a853 !important;
+    outline-offset: -3px;
+}
