@@ -14,6 +14,7 @@ let timeoutCount = 0;
 let errorCount = 0;
 let totalInQueue = 0;
 let failedUrls = [];
+let currentHoverIndex = -1;
 
 let panelStatusDiv = null;
 let bannerDiv = null;
@@ -216,8 +217,9 @@ function initRangeDownloadUI() {
         }
     });
 
-    // キャプチャリングフェーズでクリックフック
+    // キャプチャリングフェーズでクリックとマウスオーバーフック
     document.addEventListener('click', handleGlobalClick, true);
+    document.addEventListener('mouseover', handleGlobalMouseOver, true);
 }
 
 function startSelection() {
@@ -243,7 +245,43 @@ function cancelSelectionOrDownload() {
 }
 
 function clearHighlights() {
-    document.querySelectorAll('.gemini-dl-selected').forEach(el => el.classList.remove('gemini-dl-selected'));
+    document.querySelectorAll('.gemini-dl-hover-range').forEach(el => el.classList.remove('gemini-dl-hover-range'));
+    document.querySelectorAll('.gemini-dl-selected-range').forEach(el => el.classList.remove('gemini-dl-selected-range'));
+    currentHoverIndex = -1;
+}
+
+function handleGlobalMouseOver(e) {
+    if (appState !== 'SELECTING_START' && appState !== 'SELECTING_END') return;
+    
+    const card = e.target.closest('.library-item-card');
+    if (!card) {
+        if (currentHoverIndex !== -1) {
+            document.querySelectorAll('.gemini-dl-hover-range').forEach(el => el.classList.remove('gemini-dl-hover-range'));
+            currentHoverIndex = -1;
+        }
+        return;
+    }
+    
+    const allCards = Array.from(document.querySelectorAll('.library-item-card'));
+    const index = allCards.indexOf(card);
+    if (index === -1) return;
+    
+    if (currentHoverIndex === index) return;
+    
+    currentHoverIndex = index;
+    document.querySelectorAll('.gemini-dl-hover-range').forEach(el => el.classList.remove('gemini-dl-hover-range'));
+    
+    if (appState === 'SELECTING_START') {
+        card.classList.add('gemini-dl-hover-range');
+    } else if (appState === 'SELECTING_END') {
+        const start = Math.min(rangeStartIndex, index);
+        const end = Math.max(rangeStartIndex, index);
+        for (let i = start; i <= end; i++) {
+            if (allCards[i]) {
+                allCards[i].classList.add('gemini-dl-hover-range');
+            }
+        }
+    }
 }
 
 function handleGlobalClick(e) {
@@ -261,12 +299,20 @@ function handleGlobalClick(e) {
 
     if (appState === 'SELECTING_START') {
         rangeStartIndex = index;
-        card.classList.add('gemini-dl-selected');
         appState = 'SELECTING_END';
         bannerDiv.textContent = '終了点を選択';
     } else if (appState === 'SELECTING_END') {
         rangeEndIndex = index;
-        card.classList.add('gemini-dl-selected');
+        
+        const start = Math.min(rangeStartIndex, rangeEndIndex);
+        const end = Math.max(rangeStartIndex, rangeEndIndex);
+        for (let i = start; i <= end; i++) {
+            if (allCards[i]) {
+                allCards[i].classList.remove('gemini-dl-hover-range');
+                allCards[i].classList.add('gemini-dl-selected-range');
+            }
+        }
+        
         bannerDiv.classList.remove('show');
         document.body.classList.remove('gemini-dl-selecting');
         startRangeDownload();
@@ -309,7 +355,7 @@ function updateStatusText() {
         appState = 'IDLE';
         rangeBtn.textContent = '範囲ダウンロード';
         panelStatusDiv.textContent += ' - 完了しました';
-        clearHighlights();
+        // clearHighlights(); // 完了後もハイライトを残す
         
         if (failedUrls.length > 0) {
             const textList = failedUrls.join('\n');
