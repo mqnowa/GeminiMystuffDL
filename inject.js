@@ -4,16 +4,12 @@
 (function() {
     function extractAndSendIds(text) {
         if (!text) return;
-        const regex1 = /\[\s*"c_([a-zA-Z0-9_-]+)"\s*,\s*"r_([a-zA-Z0-9_-]+)"/g;
+        // エスケープ文字（\）が0個以上付いているダブルクォートに対応
+        const regex = /\[\\*"\s*c_([a-zA-Z0-9_-]+)\s*\\*"\s*,\s*\\*"\s*r_([a-zA-Z0-9_-]+)\s*\\*"\]/g;
         let match;
         const extracted = [];
         
-        while ((match = regex1.exec(text)) !== null) {
-            extracted.push({ chat_id: match[1], response_id: match[2] });
-        }
-        
-        const regex2 = /\["c_([a-zA-Z0-9_-]+)","r_([a-zA-Z0-9_-]+)"\]/g;
-        while ((match = regex2.exec(text)) !== null) {
+        while ((match = regex.exec(text)) !== null) {
             extracted.push({ chat_id: match[1], response_id: match[2] });
         }
 

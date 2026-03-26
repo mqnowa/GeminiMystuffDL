@@ -63,32 +63,9 @@ function initDLButtons() {
                     console.log(`[GeminiDL] ID matched from list index ${currentIndex}: chat=${chat_id}, res=${response_id}`);
                 }
 
-                // APIリストから取れなかった場合のフォールバック抽出 (以前のロジック)
-                if (!chat_id || !response_id) {
-                    console.warn(`[GeminiDL] APIリストのインデックス ${currentIndex} にデータが見つかりません。DOMヒューリスティックによる抽出にフォールバックします。`);
-                    const aTag = card.querySelector('a') || (card.shadowRoot && card.shadowRoot.querySelector('a'));
-                    if (aTag && aTag.href && aTag.href.includes('/app/')) {
-                        const url = new URL(aTag.href, window.location.origin);
-                        const pathParts = url.pathname.split('/');
-                        chat_id = pathParts[pathParts.length - 1];
-                        response_id = url.hash.replace('#', '');
-                    } else {
-                        chat_id = card.dataset.chatId || card.getAttribute('data-chat-id');
-                        response_id = card.dataset.responseId || card.getAttribute('data-response-id');
-                        if (!chat_id || !response_id) {
-                            const htmlStr = card.innerHTML;
-                            const match = htmlStr.match(/\/app\/([a-zA-Z0-9_-]+)#([a-zA-Z0-9_-]+)/);
-                            if (match) {
-                                chat_id = match[1];
-                                response_id = match[2];
-                            }
-                        }
-                    }
-                }
-
                 // --- バックグラウンドタブ方式のダウンロード ---
                 if (!chat_id || !response_id) {
-                    throw new Error("チャットへのリンク(ID)が見つかりません。バックグラウンドでのダウンロードページを特定できません。");
+                    throw new Error(`チャットへのリンク(ID)が見つかりません。APIリスト(全${apiIdList.length}件)のインデックス ${currentIndex} にデータが存在しません。`);
                 }
                 
                 chrome.runtime.sendMessage({
