@@ -2,100 +2,7 @@
 
 let apiIdList = []; // APIやHTMLから抽出した {chat_id, response_id} の順序付きリスト
 
-// -------------------------------------------------------------------
-// 1. ページ空間へのスクリプトインジェクション
-// jGArJ のレスポンスや初期HTML内のデータを抽出して postMessage で受け取る
-// -------------------------------------------------------------------
-function injectHookScript() {
-    const script = document.createElement('script');
-    script.textContent = `
-        (function() {
-            // 文字列から c_[chat_id], r_[response_id] のペアをすべて抽出
-            function extractAndSendIds(text) {
-                if (!text) return;
-                // バッチレスポンス内の形式: ["c_chatid", "r_responseid"] にマッチさせる
-                const regex = /\\u005B\\s*"c_([a-zA-Z0-9_-]+)"\\s*,\\s*"r_([a-zA-Z0-9_-]+)"/g;
-                let match;
-                const extracted = [];
-                while ((match = regex.exec(text)) !== null) {
-                    extracted.push({ chat_id: match[1], response_id: match[2] });
-                }
-                
-                // もう一つの形式: ["c_chatid","r_responseid"] 等にも対応するより緩い正規表現
-                const regex2 = /\\["c_([a-zA-Z0-9_-]+)","r_([a-zA-Z0-9_-]+)"\\]/g;
-                while ((match = regex2.exec(text)) !== null) {
-                    extracted.push({ chat_id: match[1], response_id: match[2] });
-                }
-
-                // 重複排除して送信 (1回のレスポンスで同じ形式が複数回マッチする可能性があるため簡易的な一意化)
-                const uniqueIds = [];
-                const seen = new Set();
-                extracted.forEach(item => {
-                    const key = item.chat_id + "_" + item.response_id;
-                    if (!seen.has(key)) {
-                        seen.add(key);
-                        uniqueIds.push(item);
-                    }
-                });
-
-                if (uniqueIds.length > 0) {
-                    window.postMessage({ type: "GEMINI_DL_IDS", ids: uniqueIds }, "*");
-                    console.log("[GeminiDL Inject] IDs sent:", uniqueIds.length);
-                }
-            }
-
-            // 初回ロード分のデータをHTMLから探す
-            function scanHTML() {
-                const scripts = document.querySelectorAll('script');
-                scripts.forEach(s => {
-                    if (s.textContent.includes('c_') && s.textContent.includes('r_')) {
-                        extractAndSendIds(s.textContent);
-                    }
-                });
-            }
-
-            // DOMContentLoaded後と数秒後にスキャン実行
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', scanHTML);
-            } else {
-                scanHTML();
-            }
-            setTimeout(scanHTML, 2000); // 遅延読み込み対応
-
-            // --- fetch のフック ---
-            const originalFetch = window.fetch;
-            window.fetch = async (...args) => {
-                const response = await originalFetch(...args);
-                const url = typeof args[0] === 'string' ? args[0] : (args[0] ? args[0].url : "");
-                
-                if (url.includes('jGArJ') || url.includes('batchexecute')) {
-                    const clone = response.clone();
-                    clone.text().then(text => {
-                        extractAndSendIds(text);
-                    }).catch(e => console.error(e));
-                }
-                return response;
-            };
-
-            // --- XHR のフック ---
-            const originalXhrOpen = XMLHttpRequest.prototype.open;
-            XMLHttpRequest.prototype.open = function(method, url, ...rest) {
-                this.addEventListener('load', function() {
-                    const urlStr = typeof url === 'string' ? url : "";
-                    if (urlStr.includes('jGArJ') || urlStr.includes('batchexecute')) {
-                        extractAndSendIds(this.responseText);
-                    }
-                });
-                originalXhrOpen.call(this, method, url, ...rest);
-            };
-
-        })();
-    `;
-    (document.head || document.documentElement).appendChild(script);
-    script.remove();
-}
-
-// メッセージリスナー
+// メッセージリスナー: inject.js からのデータを受信
 window.addEventListener("message", (event) => {
     if (event.source !== window || !event.data || event.data.type !== "GEMINI_DL_IDS") return;
     const { ids } = event.data;
@@ -303,7 +210,6 @@ function observeDOM() {
     observer.observe(document.body, { childList: true, subtree: true });
 }
 
-injectHookScript();
 // 初期DOMが構築されるのを待ってからボタンを配置
 setTimeout(initDLButtons, 1000);
 observeDOM();
