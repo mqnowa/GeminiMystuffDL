@@ -86,32 +86,29 @@ function initDLButtons() {
                     }
                 }
 
-                // --- フルサイズ画像URLの生成（メインロジック） ---
-                // 分析の結果、c8o8Fe APIはプロンプトや詳細なセッショントークンが必要であり一覧画面からは利用不可能なため、
-                // GoogleのLH3画像サーバーの仕様を利用したURLパラメータ書き換えによる直接取得を行います。
-                
-                const imgSrc = img.src;
-                let fullUrl = "";
-
-                if (imgSrc.includes('/gg/')) {
-                    fullUrl = imgSrc.replace('/gg/', '/gg-dl/').split('=')[0] + '=s0-d';
-                } else if (imgSrc.includes('/rd-gg/')) {
-                    fullUrl = imgSrc.replace('/rd-gg/', '/rd-gg-dl/').split('=')[0] + '=s0-d';
-                } else {
-                    fullUrl = imgSrc.split('=')[0] + '=s0-d';
+                // --- バックグラウンドタブ方式のダウンロード ---
+                if (!chat_id || !response_id) {
+                    throw new Error("チャットへのリンク(ID)が見つかりません。バックグラウンドでのダウンロードページを特定できません。");
                 }
+                
+                chrome.runtime.sendMessage({
+                    type: "DOWNLOAD_FULL_SIZE",
+                    chatId: chat_id,
+                    responseId: response_id
+                }, (response) => {
+                    console.log("[GeminiDL] Background download process started for", chat_id, response_id);
+                });
 
-                // IDが取得できなかった場合もダウンロードは強行する
-                const safeChatId = chat_id || "unknown";
-                const safeResId = response_id || "unknown";
-
-                // フルサイズ画像をダウンロード
-                await downloadImage(fullUrl, `gemini_original_${safeChatId}_${safeResId}.jpg`);
+                dlBtn.innerHTML = '🔄 DL準備中...';
+                
+                setTimeout(() => {
+                    dlBtn.innerHTML = originalText;
+                    dlBtn.disabled = false;
+                }, 5000);
 
             } catch (err) {
                 console.error("GeminiDL Error:", err);
                 alert("画像のダウンロードに失敗しました: " + err.message);
-            } finally {
                 dlBtn.innerHTML = originalText;
                 dlBtn.disabled = false;
             }

@@ -4,7 +4,7 @@
 (function() {
     function extractAndSendIds(text) {
         if (!text) return;
-        const regex1 = /\\u005B\\s*"c_([a-zA-Z0-9_-]+)"\\s*,\\s*"r_([a-zA-Z0-9_-]+)"/g;
+        const regex1 = /\[\s*"c_([a-zA-Z0-9_-]+)"\s*,\s*"r_([a-zA-Z0-9_-]+)"/g;
         let match;
         const extracted = [];
         
@@ -12,7 +12,7 @@
             extracted.push({ chat_id: match[1], response_id: match[2] });
         }
         
-        const regex2 = /\\["c_([a-zA-Z0-9_-]+)","r_([a-zA-Z0-9_-]+)"\\]/g;
+        const regex2 = /\["c_([a-zA-Z0-9_-]+)","r_([a-zA-Z0-9_-]+)"\]/g;
         while ((match = regex2.exec(text)) !== null) {
             extracted.push({ chat_id: match[1], response_id: match[2] });
         }

@@ -4,11 +4,16 @@
   "version": "1.0",
   "description": "Download original resolution images from Gemini's 'Made with Gemini' page.",
   "permissions": [
-    "downloads"
+    "downloads",
+    "tabs",
+    "scripting"
   ],
   "host_permissions": [
     "https://gemini.google.com/*"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
     {
       "matches": [
