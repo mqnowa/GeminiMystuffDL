@@ -27,13 +27,27 @@
     },
     {
       "matches": [
-        "https://gemini.google.com/*"
+        "https://gemini.google.com/mystuff",
+        "https://gemini.google.com/mystuff/*",
+        "https://gemini.google.com/u/*/mystuff",
+        "https://gemini.google.com/u/*/mystuff/*"
       ],
       "js": [
-        "content.js"
+        "mystuff.js"
       ],
       "css": [
         "style.css"
+      ],
+      "run_at": "document_idle",
+      "world": "ISOLATED"
+    },
+    {
+      "matches": [
+        "https://gemini.google.com/app/*",
+        "https://gemini.google.com/u/*/app/*"
+      ],
+      "js": [
+        "app.js"
       ],
       "run_at": "document_idle",
       "world": "ISOLATED"
