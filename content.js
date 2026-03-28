@@ -323,8 +323,6 @@ function startRangeDownload() {
     appState = 'DOWNLOADING';
     rangeBtn.textContent = 'キャンセル(停止)';
     
-    const start = Math.min(rangeStartIndex, rangeEndIndex);
-    const end = Math.max(rangeStartIndex, rangeEndIndex);
     const n = parseInt(concurrentInput.value, 10) || 5;
     maxConcurrent = n > 0 ? n : 5;
     
@@ -335,8 +333,8 @@ function startRangeDownload() {
     errorCount = 0;
     failedUrls = [];
 
-    const allCards = Array.from(document.querySelectorAll('.library-item-card'));
-    for (let i = start; i <= end; i++) {
+    const step = rangeStartIndex <= rangeEndIndex ? 1 : -1;
+    for (let i = rangeStartIndex; step === 1 ? i <= rangeEndIndex : i >= rangeEndIndex; i += step) {
         const idData = apiIdList[i];
         if (idData) {
             downloadQueue.push({ index: i, ...idData });
