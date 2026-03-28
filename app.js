@@ -33,70 +33,40 @@ function autoDownloadImage(responseId) {
 
         if (btn) {
             clearInterval(checkExist);
-            console.log("[GeminiDL app.js] Found download button. Starting animation observer...");
+            console.log("[GeminiDL app.js] Found download button. Waiting for network interception...");
             
             // 60秒の全体タイムアウト
             const overallTimeout = setTimeout(() => {
-                if(observer) observer.disconnect();
+                window.removeEventListener("message", messageListener);
                 console.log("[GeminiDL app.js] Timeout: Download process took longer than 60 seconds.");
                 chrome.runtime.sendMessage({ type: "AUTO_DOWNLOAD_ERROR", error: "timeout" });
             }, 60000);
 
-            let spinnerSeen = false;
-            
-            // DOM変化を監視
-            const observer = new MutationObserver((mutations) => {
-                mutations.forEach(mutation => {
-                    if (mutation.type === 'childList') {
-                        // スピナーが追加されたか？
-                        mutation.addedNodes.forEach(node => {
-                            if (node.nodeType === 1) {
-                                if (node.tagName.toLowerCase() === 'mat-spinner' || node.classList.contains('mat-mdc-progress-spinner') || node.classList.contains('mdc-circular-progress')) {
-                                    spinnerSeen = true;
-                                    console.log("[GeminiDL app.js] Spinner added. Download preparing...");
-                                } else if (node.querySelector && (node.querySelector('mat-spinner') || node.querySelector('.mat-mdc-progress-spinner'))) {
-                                    spinnerSeen = true;
-                                    console.log("[GeminiDL app.js] Spinner added (child). Download preparing...");
-                                }
-                            }
-                        });
-
-                        // スピナーが削除されたか？ (準備完了 -> ダウンロード開始)
-                        if (spinnerSeen) {
-                            mutation.removedNodes.forEach(node => {
-                                if (node.nodeType === 1) {
-                                    if (node.tagName.toLowerCase() === 'mat-spinner' || node.classList.contains('mat-mdc-progress-spinner') || node.classList.contains('mdc-circular-progress') || (node.querySelector && node.querySelector('mat-spinner'))) {
-                                        console.log("[GeminiDL app.js] Spinner removed! Download actually starting...");
-                                        observer.disconnect();
-                                        clearTimeout(overallTimeout);
-                                        // 実ファイルの保存キックまでのバッファとして1秒待つ
-                                        setTimeout(() => {
-                                            chrome.runtime.sendMessage({ type: "AUTO_DOWNLOAD_DONE" });
-                                        }, 1000);
-                                    }
-                                }
-                            });
-                        }
-                    }
-                });
-            });
-
-            // 監視開始
-            observer.observe(btn, { childList: true, subtree: true, attributes: true });
-            
-            // クリック実行
-            btn.click();
-            
-            // もし画像が既にキャッシュされていて、スピナーが一瞬（あるいは全く）出なかった場合のためのフォールバック
-            // スピナーが3秒経っても出ない場合は、速やかにダウンロート処理が終了しているとみなし閉じる。
-            setTimeout(() => {
-                if (!spinnerSeen) {
-                    console.log("[GeminiDL app.js] No spinner detected after 3 seconds. Assuming immediate download.");
-                    observer.disconnect();
+            // inject.js からのURL傍受メッセージ待機
+            const messageListener = (event) => {
+                if (event.data && event.data.type === "GEMINI_DL_FULL_SIZE_URL") {
+                    console.log("[GeminiDL app.js] Received full size URL from inject.js:", event.data.url);
+                    window.removeEventListener("message", messageListener);
                     clearTimeout(overallTimeout);
-                    chrome.runtime.sendMessage({ type: "AUTO_DOWNLOAD_DONE" });
+                    
+                    let chatId = "unknown";
+                    const pathParts = window.location.pathname.split('/');
+                    if (pathParts.length > 0) {
+                        chatId = pathParts[pathParts.length - 1];
+                    }
+                    
+                    chrome.runtime.sendMessage({ 
+                        type: "AUTO_DOWNLOAD_START_BG", 
+                        url: event.data.url,
+                        chatId: chatId,
+                        responseId: responseId
+                    });
                 }
-            }, 3000);
+            };
+            window.addEventListener("message", messageListener);
+            
+            // クリック実行 (これにより batchexecute が発生し inject.js が傍受する)
+            btn.click();
 
         } else if (attempts >= maxWaitElements) {
             clearInterval(checkExist);

@@ -47,8 +47,30 @@
 
     const originalFetch = window.fetch;
     window.fetch = async (...args) => {
-        const response = await originalFetch(...args);
         const url = typeof args[0] === 'string' ? args[0] : (args[0] ? args[0].url : "");
+        
+        if (url.includes('batchexecute') && url.includes('rpcids=c8o8Fe')) {
+            try {
+                const response = await originalFetch(...args);
+                const clone = response.clone();
+                const text = await clone.text();
+                
+                const regex = /https:\/\/lh3\.googleusercontent\.com\/gg-dl\/([^"\\]+)/;
+                const match = text.match(regex);
+                if (match) {
+                    const ggDlUrl = `https://lh3.googleusercontent.com/gg-dl/${match[1]}`;
+                    window.postMessage({ type: "GEMINI_DL_FULL_SIZE_URL", url: ggDlUrl }, "*");
+                    console.log("[GeminiDL Inject] Captured gg-dl URL:", ggDlUrl);
+                } else {
+                    console.log("[GeminiDL Inject] c8o8Fe response did not contain gg-dl URL.");
+                }
+                return new Response("[]", { status: 400, statusText: "Bad Request (Intercepted by GeminiDL)" });
+            } catch (e) {
+                return Promise.reject(e);
+            }
+        }
+
+        const response = await originalFetch(...args);
         if (url.includes('jGArJ') || url.includes('batchexecute')) {
             const clone = response.clone();
             clone.text().then(text => extractAndSendIds(text)).catch(e => console.error(e));
