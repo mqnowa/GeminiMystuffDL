@@ -1,0 +1,24 @@
+/* カード自体の設定（ボタンの基準点にする） */
+library-item-card {
+  position: relative;
+}
+
+/* ダウンロードボタンの初期状態（非表示） */
+.dl-spy-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: none; /* 通常は隠す */
+  padding: 8px 12px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  z-index: 10;
+}
+
+/* カードをホバーした時にボタンを表示 */
+library-item-card:hover .dl-spy-btn {
+  display: block;
+}

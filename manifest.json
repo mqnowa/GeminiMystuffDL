@@ -1,0 +1,66 @@
+{
+  "manifest_version": 3,
+  "name": "Gemini Original Image Downloader",
+  "version": "0.1",
+  "description": "「作成したもの」ページから直接、オリジナル解像度の画像をダウンロードするボタンを追加する拡張機能です。",
+  "permissions": [
+    "downloads",
+    "tabs",
+    "cookies",
+    "scripting",
+    "declarativeNetRequest",
+    "declarativeNetRequestFeedback"
+  ],
+  "host_permissions": [
+    "https://gemini.google.com/*",
+    "https://lh3.googleusercontent.com/*",
+    "https://work.fife.usercontent.google.com/*"
+  ],
+  "declarative_net_request": {
+    "rule_resources": [{
+      "id": "ruleset_1",
+      "enabled": true,
+      "path": "rules.json"
+    }]
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://gemini.google.com/mystuff",
+        "https://gemini.google.com/u/*/mystuff"
+      ],
+      "js": [
+        "module.js",
+        "mystuff.js"
+      ],
+      "css": [
+        "mystuff.css"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://gemini.google.com/app/*",
+        "https://gemini.google.com/u/*/app/*"
+      ],
+      "js": [
+        "module.js",
+        "app.js"
+      ],
+      // "css": [
+      //   "app.css"
+      // ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://gemini.google.com/*"],
+      "js": ["content-isolated.js"],
+      "world": "ISOLATED"
+    }
+  ]
+}
