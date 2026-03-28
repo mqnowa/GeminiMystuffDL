@@ -45,11 +45,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             const executeClick = (rId) => {
                 return new Promise((resolve) => {
                     const checkExist = setInterval(() => {
-                        const btn = document.querySelector(`[data-message-id="${rId}"] .generated-image-button`) ||
-                                    document.querySelector(`.generated-image-button`);
+                        const messageBlock = document.getElementById(rId) || 
+                                             document.querySelector(`[data-message-id="${rId}"]`);
+                        let btn = null;
+                        
+                        if (messageBlock) {
+                            btn = messageBlock.querySelector('.generated-image-button');
+                        }
                         
                         if (btn) {
-                            console.log("[GeminiDL Script] Found download button. Clicking.");
+                            console.log("[GeminiDL Script] Found download button for specific message. Clicking.");
                             clearInterval(checkExist);
                             btn.click();
                             // クリックできたことを即座に返す（タブは background.js が監視して閉じる）
