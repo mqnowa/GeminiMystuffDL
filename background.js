@@ -16,17 +16,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             const doResponse = (status) => {
                 if (!responded) {
                     responded = true;
-                    sendResponse({ status: status });
+                    // sendResponse は呼び出し元が切断されていてもエラーにならないようキャッチ等は必要ないが安全に
+                    try {
+                        sendResponse({ status: status });
+                    } catch (e) {}
                 }
                 waitingTasks.delete(tabId);
             };
             
-            // タイムアウト設定 (最長120秒待つ)
+            // タイムアウト設定 (安全確保のため70秒待つ。実質はapp.js側が優先して制御する)
             const timeoutId = setTimeout(() => {
                 console.log(`[GeminiDL] Timeout reached for tab ${tabId}. Forcing close.`);
                 chrome.tabs.remove(tabId).catch(() => {});
                 doResponse("timeout");
-            }, 120000);
+            }, 70000);
             
             waitingTasks.set(tabId, { doResponse, timeoutId });
         });
