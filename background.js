@@ -25,7 +25,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     // すべての mystuff ページタブへステータスを転送
-    chrome.tabs.query({ url: "*://gemini.google.com/mystuff*" }, (tabs) => {
+    chrome.tabs.query({ url: ["*://gemini.google.com/mystuff*", "*://gemini.google.com/u/*/mystuff*"] }, (tabs) => {
       tabs.forEach(tab => {
         chrome.tabs.sendMessage(tab.id, request);
       });

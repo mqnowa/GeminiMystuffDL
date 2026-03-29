@@ -8,7 +8,8 @@
         queue: [],
         activeCount: 0,
         stats: { success: 0, error: 0, timeout: 0 },
-        failedIds: []
+        failedIds: [],
+        processedIds: new Set() // 重複処理防止用
     };
 
     let ui = {};
@@ -176,6 +177,7 @@
         rangeState.activeCount = 0;
         rangeState.stats = { success: 0, error: 0, timeout: 0 };
         rangeState.failedIds = [];
+        rangeState.processedIds = new Set();
         rangeState.queue = [];
 
         // キューの作成 (逆順対応)
@@ -224,25 +226,34 @@
 
         showBanner('ダウンロード完了');
 
-        if (rangeState.failedIds.length > 0) {
-            saveFailedList();
-        }
+        saveDownloadReport();
 
         rangeState.mode = 'IDLE';
         setTimeout(hideBanner, 5000);
     }
 
-    function saveFailedList() {
-        const lines = rangeState.failedIds.map(id => {
-            const [cid, rid] = id.split("#");
-            return `https://gemini.google.com/app/${cid}#${rid}`;
-        });
-        const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+    function saveDownloadReport() {
+        let content = "";
+        let filename = "";
+        const now = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
+
+        if (rangeState.failedIds.length > 0) {
+            const lines = rangeState.failedIds.map(id => {
+                const [cid, rid] = id.split("#");
+                return `https://gemini.google.com/app/${cid}#${rid}`;
+            });
+            content = "以下のダウンロードに失敗しました（再構成用URL）：\n\n" + lines.join('\n');
+            filename = `${now}_failed_downloads.txt`;
+        } else {
+            content = `すべてのダウンロードが正常に完了しました。\n\n統計:\n成功: ${rangeState.stats.success}\n失敗: ${rangeState.stats.error}\nタイムアウト: ${rangeState.stats.timeout}\n\n完了日時: ${new Date().toLocaleString()}\n`;
+            filename = `${now}_all_success.txt`;
+        }
+
+        const blob = new Blob([content], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        const now = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
         a.href = url;
-        a.download = `${now}_failed_downloads.txt`;
+        a.download = filename;
         a.click();
         URL.revokeObjectURL(url);
     }
@@ -304,9 +315,20 @@
     window.addEventListener('message', (event) => {
         if (event.source !== window || !event.data || event.data.action !== 'download_status') return;
 
-        console.log("Received download status message:", event.data);
         const { status, identifier } = event.data;
-        if (rangeState.mode !== 'DOWNLOADING') return;
+        console.log(`[mystuff] Received status: ${status} for ${identifier}`, event.data);
+
+        if (rangeState.mode !== 'DOWNLOADING') {
+            console.log("[mystuff] Ignored: not in DOWNLOADING mode");
+            return;
+        }
+
+        // 重複処理の防止 (念のため)
+        if (identifier && rangeState.processedIds.has(identifier)) {
+            console.warn(`[mystuff] Duplicate status ignored for ${identifier}`);
+            return;
+        }
+        if (identifier) rangeState.processedIds.add(identifier);
 
         if (status === 'success') {
             rangeState.stats.success++;
@@ -315,7 +337,9 @@
             if (identifier) rangeState.failedIds.push(identifier);
         }
 
-        rangeState.activeCount--;
+        rangeState.activeCount = Math.max(0, rangeState.activeCount - 1);
+        console.log(`[mystuff] Stats updated - Success: ${rangeState.stats.success}, Active: ${rangeState.activeCount}`);
+        
         updateProgress();
         processQueue();
     });
