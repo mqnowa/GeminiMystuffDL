@@ -8,7 +8,7 @@
         queue: [],
         activeCount: 0,
         stats: { success: 0, error: 0, timeout: 0 },
-        failedRids: []
+        failedIds: []
     };
 
     let ui = {};
@@ -31,10 +31,12 @@
         if (index < 0 || index >= photos.length) return;
         const [cid, rid] = photos[index];
         const url = "https://gemini.google.com/app/" + cid + "#" + rid;
+        const identifier = cid + "#" + rid;
+        console.log("Starting background download:", identifier);
         window.postMessage({
             action: "open_background_tab",
             url: url + "?dl=true",
-            identifier: cid + "#" + rid
+            identifier: identifier
         }, "*");
     }
 
@@ -76,7 +78,7 @@
         row2.appendChild(ui.batchBtn);
         ui.panel.appendChild(row2);
 
-        // 3行目: 統計カウンター (新設)
+        // 3行目: 統計カウンター
         ui.statsContainer = document.createElement('div');
         ui.statsContainer.className = 'dl-stats-container';
         
@@ -110,8 +112,6 @@
         ui.bannerText = document.createElement('div');
         ui.bannerText.className = 'dl-banner-text';
         ui.banner.appendChild(ui.bannerText);
-
-        // (以前の stats 用要素は削除)
 
         document.body.appendChild(ui.banner);
     }
@@ -175,7 +175,7 @@
         rangeState.concurrentLimit = concurrent;
         rangeState.activeCount = 0;
         rangeState.stats = { success: 0, error: 0, timeout: 0 };
-        rangeState.failedRids = [];
+        rangeState.failedIds = [];
         rangeState.queue = [];
 
         // キューの作成 (逆順対応)
@@ -218,14 +218,13 @@
         ui.batchBtn.disabled = false;
         ui.batchBtn.textContent = '一括ダウンロード';
         
-        // 最終的な統計数値を更新
         ui.valSuccess.textContent = rangeState.stats.success.toString();
         ui.valError.textContent = rangeState.stats.error.toString();
         ui.valTimeout.textContent = rangeState.stats.timeout.toString();
 
         showBanner('ダウンロード完了');
 
-        if (rangeState.failedRids.length > 0) {
+        if (rangeState.failedIds.length > 0) {
             saveFailedList();
         }
 
@@ -234,10 +233,9 @@
     }
 
     function saveFailedList() {
-        const lines = rangeState.failedRids.map(rid => {
-            const photo = photos.find(p => p[1] === rid);
-            if (photo) return `https://gemini.google.com/app/${photo[0]}#${photo[1]}`;
-            return `Unknown ID: ${rid}`;
+        const lines = rangeState.failedIds.map(id => {
+            const [cid, rid] = id.split("#");
+            return `https://gemini.google.com/app/${cid}#${rid}`;
         });
         const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
@@ -257,7 +255,7 @@
         const allCards = Array.from(document.querySelectorAll(cardSelector));
         const index = allCards.indexOf(card);
 
-        // 個別ダウンロードボタンの注入
+        // 個別ダウンロードボタン
         if (!card.querySelector('.dl-spy-btn')) {
             const btn = document.createElement('button');
             btn.className = 'dl-spy-btn';
@@ -306,14 +304,15 @@
     window.addEventListener('message', (event) => {
         if (event.source !== window || !event.data || event.data.action !== 'download_status') return;
 
-        const { status, rid } = event.data;
+        console.log("Received download status message:", event.data);
+        const { status, identifier } = event.data;
         if (rangeState.mode !== 'DOWNLOADING') return;
 
         if (status === 'success') {
             rangeState.stats.success++;
         } else if (status === 'error' || status === 'timeout') {
             rangeState.stats[status]++;
-            rangeState.failedRids.push(rid);
+            if (identifier) rangeState.failedIds.push(identifier);
         }
 
         rangeState.activeCount--;
@@ -321,7 +320,6 @@
         processQueue();
     });
 
-    // 初期化ループ
     const initInterval = setInterval(() => {
         if (document.body) {
             initUI();
@@ -330,4 +328,4 @@
     }, 500);
 
     console.log("Range downloader initialized");
-})();
+})();
