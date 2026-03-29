@@ -33,7 +33,8 @@
         const url = "https://gemini.google.com/app/" + cid + "#" + rid;
         window.postMessage({
             action: "open_background_tab",
-            url: url + "?dl=true"
+            url: url + "?dl=true",
+            identifier: cid + "#" + rid
         }, "*");
     }
 

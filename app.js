@@ -1,6 +1,8 @@
+let g_identifier = "";
+
 async function downloadImage(url, name, attempt = 1) {
     if (attempt > 3) {
-        window.postMessage({ action: "download_status", status: "error", rid: name.split("#").pop() }, "*");
+        window.postMessage({ action: "download_status", status: "error", identifier: g_identifier }, "*");
         return;
     }
     const res = await window._originalFetch(url, {
@@ -15,9 +17,8 @@ async function downloadImage(url, name, attempt = 1) {
         const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(await res.blob()), download: `${name}.${ext}` });
         a.click();
         console.log("ダウンロード成功");
-        window.postMessage({ action: "download_status", status: "success", rid: name.split("#").pop() }, "*");
-        console.log("ウィンドウを閉じます");
-        window.close();
+        window.postMessage({ action: "download_status", status: "success", identifier: g_identifier }, "*");
+        console.log("ウィンドウのクローズをリクエストしました");
     } else {
         downloadImage((await res.text()).trim(), name, attempt + 1);
     }
@@ -28,6 +29,8 @@ async function downloadImage(url, name, attempt = 1) {
     const cid = url.pathname.split("/").at(-1)
     const parts = url.hash.split("?");
     const rid = parts[0].slice(1);
+    g_identifier = cid + "#" + rid;
+
     const dl = (parts.length > 1) ? (new URLSearchParams(parts[1])).get("dl") : null;
 
     if (dl == undefined) {
@@ -36,7 +39,7 @@ async function downloadImage(url, name, attempt = 1) {
 
     // タイムアウト監視（60秒）
     const timeoutId = setTimeout(() => {
-        window.postMessage({ action: "download_status", status: "timeout", rid: rid }, "*");
+        window.postMessage({ action: "download_status", status: "timeout", identifier: g_identifier }, "*");
     }, 60000);
 
     fetchSpy(
@@ -58,4 +61,4 @@ async function downloadImage(url, name, attempt = 1) {
             clearInterval(intervalId);
         }
     }, 500);
-})();
+})();
