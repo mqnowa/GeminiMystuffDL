@@ -24,8 +24,7 @@
         }, "*")
     }
 
-    const gridSelector = 'library-item-grid';
-    const cardSelector = 'library-item-card';
+    const cardSelector = '.library-item-card';
 
     // グリッド要素にマウスが入ったタイミングでイベントを捕捉（委譲）
     document.addEventListener('mouseover', (e) => {
@@ -35,12 +34,19 @@
         if (card && !card.querySelector('.dl-spy-btn')) {
             const btn = document.createElement('button');
             btn.className = 'dl-spy-btn';
-            btn.innerText = '⬇️';
 
-            // クリック時の処理（プレースホルダー）
+            // SVGアイコンをDOM APIで作成 (Trusted Types回避のため innerHTML は不使用)
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('viewBox', '0 0 24 24');
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', 'M12 16l-5-5h3V4h4v7h3l-5 5zm-7 2h14v2H5v-2z');
+            svg.appendChild(path);
+            btn.appendChild(svg);
+
+            // クリック時の処理
             btn.onclick = (event) => {
                 event.stopPropagation(); // カード側のクリックイベント発火を防ぐ
-                const allCards = Array.from(card.parentNode.children);
+                const allCards = Array.from(document.querySelectorAll(cardSelector));
                 const index = allCards.indexOf(card);
                 download(index);
             };
