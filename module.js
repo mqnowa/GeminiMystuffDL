@@ -1,17 +1,21 @@
+// module.js: ブラウザ全体の通信(XHR, fetch)をフックし、特定のURLの通信内容を傍受・操作するための基盤機能
 console.log("GeminiDL module.js");
 
 (function() {
     window._fetchSpies = window._fetchSpies || [];
 
+    // 指定したURLパターンの通信が完了した際に、独自のaction(コールバック)を呼び出せるよう指示を登録する
     window.fetchSpy = function(urlPattern, action, preventDefault = false) {
         window._fetchSpies.unshift({ pattern: urlPattern, action, preventDefault });
     };
 
+    // --- XMLHttpRequest のインターセプト(横取り)設定 ---
     const originalOpen = XMLHttpRequest.prototype.open;
     const originalSend = XMLHttpRequest.prototype.send;
 
     XMLHttpRequest.prototype.open = function(method, url) {
         this._url = url;
+        // 送信先URLが傍受対象リストと一致するかチェック
         this._matchedSpy = window._fetchSpies.find(s => 
             s.pattern instanceof RegExp ? s.pattern.test(url) : url.includes(s.pattern)
         );
@@ -97,10 +101,12 @@ console.log("GeminiDL module.js");
     };
 })();
 
+// fetchSpyの簡便なエイリアス関数
 function fetchSpy(urlPattern, action, preventDefault = false) {
     window._fetchSpies.unshift({ pattern: urlPattern, action, preventDefault });
 }
 
+// Google特有のbatchexecuteレスポンス形式(不要な改行や入れ子)を解析して、平易なJSONデータを取り出すヘルパー
 function parseBatchexecuteResponse(text) {
     var size = null;
     var contents = [];
