@@ -6,8 +6,12 @@ window.addEventListener("message", (event) => {
   if (event.data.fromExtension) return;
 
   if (["download", "open_background_tab", "download_status"].includes(event.data.action)) {
-    // 拡張機能のAPIを使ってService Workerへ転送
-    chrome.runtime.sendMessage(event.data);
+    // 拡張機能のコンテキストが有効か確認（リロード後などのエラー防止）
+    if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.id) {
+      chrome.runtime.sendMessage(event.data);
+    } else {
+      console.warn("GeminiDL: Chrome extension context invalidated. Please reload the page.");
+    }
   }
 });
 

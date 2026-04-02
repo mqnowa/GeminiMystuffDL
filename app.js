@@ -39,11 +39,6 @@ async function downloadImage(url, name, attempt = 1) {
 
     console.log("自動ダウンロード開始:", g_identifier);
 
-    // タイムアウト監視（60秒）
-    const timeoutId = setTimeout(() => {
-        console.log("ダウンロードタイムアウト:", g_identifier);
-        window.postMessage({ action: "download_status", status: "timeout", identifier: g_identifier }, "*");
-    }, 60000);
 
     fetchSpy(
         /.+\/batchexecute.+rpcids=c8o8Fe.+/,
