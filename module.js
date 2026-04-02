@@ -1,3 +1,5 @@
+console.log("GeminiDL module.js");
+
 (function() {
     window._fetchSpies = window._fetchSpies || [];
 

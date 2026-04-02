@@ -1,3 +1,5 @@
+console.log("GeminiDL app.js");
+
 async function triStageDownload(url, savename) {
     var current_url = url;
     for (let i = 0; i < 3; i++) {
@@ -63,7 +65,7 @@ async function triStageDownload(url, savename) {
                 download_complete = true;
             } else {
                 window.postMessage({
-                    gemdlAction: "download_faild",
+                    gemdlAction: "download_failed",
                     identifier: identifier
                 }, "*");
             }

@@ -39,7 +39,8 @@
       ],
       "js": [
         "module.js",
-        "mystuff.js"
+        "mystuff.js",
+        "mystuff_ui.js"
       ],
       // "css": [
       //   "mystuff.css"
