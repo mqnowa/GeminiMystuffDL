@@ -1,0 +1,78 @@
+[
+    {
+        "id": 1,
+        "priority": 1,
+        "action": {
+        "type": "modifyHeaders",
+        "requestHeaders": [
+            {
+            "header": "sec-fetch-storage-access",
+            "operation": "set",
+            "value": "active"
+            },
+            {
+            "header": "Referer",
+            "operation": "set",
+            "value": "https://gemini.google.com/"
+            }
+        ]
+        },
+        "condition": {
+        "urlFilter": "lh3.googleusercontent.com",
+        "resourceTypes": ["xmlhttprequest"]
+        }
+    },
+    {
+        "id": 2,
+        "priority": 1,
+        "action": {
+        "type": "modifyHeaders",
+        "requestHeaders": [
+            {
+            "header": "sec-fetch-storage-access",
+            "operation": "set",
+            "value": "active"
+            },
+            {
+            "header": "Referer",
+            "operation": "set",
+            "value": "https://gemini.google.com/"
+            }
+        ]
+        },
+        "condition": {
+        "urlFilter": "work.fife.usercontent.google.com",
+        "resourceTypes": ["xmlhttprequest"]
+        }
+    },
+    {
+        "id": 3,
+        "priority": 1,
+        "action": {
+            "type": "modifyHeaders",
+            "responseHeaders": [
+            { "header": "access-control-allow-origin", "operation": "set", "value": "https://gemini.google.com" },
+            { "header": "access-control-allow-methods", "operation": "set", "value": "GET, POST, OPTIONS" }
+            ]
+        },
+        "condition": {
+            "urlFilter": "lh3.googleusercontent.com",
+            "resourceTypes": ["xmlhttprequest"]
+        }
+    },
+    {
+        "id": 4,
+        "priority": 1,
+        "action": {
+            "type": "modifyHeaders",
+            "responseHeaders": [
+            { "header": "access-control-allow-origin", "operation": "set", "value": "https://gemini.google.com" },
+            { "header": "access-control-allow-methods", "operation": "set", "value": "GET, POST, OPTIONS" }
+            ]
+        },
+        "condition": {
+            "urlFilter": "work.fife.usercontent.google.com",
+            "resourceTypes": ["xmlhttprequest"]
+        }
+    }
+]

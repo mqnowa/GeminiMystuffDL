@@ -1,26 +1,63 @@
 {
   "manifest_version": 3,
-  "name": "Gemini Image Original Downloader",
-  "version": "1.0",
-  "description": "Download original resolution images from Gemini's 'Made with Gemini' page.",
+  "name": "Gemini Original Image Downloader",
+  "version": "0.1",
+  "description": "「作成したもの」ページから直接、オリジナル解像度の画像をダウンロードするボタンを追加する拡張機能です。",
   "permissions": [
-    "downloads"
+    "cookies",
+    "declarativeNetRequest",
+    "declarativeNetRequestFeedback",
+    "downloads",
+    "scripting",
+    "tabs"
   ],
   "host_permissions": [
-    "https://gemini.google.com/*"
+    "https://gemini.google.com/*",
+    "https://lh3.googleusercontent.com/*",
+    "https://work.fife.usercontent.google.com/*"
   ],
+  "declarative_net_request": {
+    "rule_resources": [{
+      "id": "ruleset_1",
+      "enabled": true,
+      "path": "rules.json"
+    }]
+  },
+  "background": {
+    "service_worker": "service_worker.js"
+  },
   "content_scripts": [
     {
+      "matches": ["https://gemini.google.com/*"],
+      "js": ["message-helper.js"],
+      "world": "ISOLATED"
+    },
+    {
       "matches": [
-        "https://gemini.google.com/*"
+        "https://gemini.google.com/mystuff",
+        "https://gemini.google.com/u/*/mystuff"
       ],
       "js": [
-        "content.js"
+        "module.js",
+        "mystuff.js"
       ],
-      "css": [
-        "style.css"
+      // "css": [
+      //   "mystuff.css"
+      // ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://gemini.google.com/app/*",
+        "https://gemini.google.com/u/*/app/*"
       ],
-      "run_at": "document_idle"
+      "js": [
+        "module.js",
+        "app.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
     }
   ]
 }
