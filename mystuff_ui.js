@@ -98,6 +98,7 @@ console.log("GeminiDL mystuff_ui.js");
         uiHistoryCheckbox = document.createElement("input");
         uiHistoryCheckbox.type = "checkbox";
         uiHistoryCheckbox.id = "gemdl-history-chk";
+        uiHistoryCheckbox.checked = true;
         optLabel.appendChild(uiHistoryCheckbox);
         optLabel.appendChild(document.createTextNode("すべての履歴を保存"));
 
@@ -172,7 +173,7 @@ console.log("GeminiDL mystuff_ui.js");
             bQueue.forEach(idx => {
                 if (typeof gemdl_photos !== "undefined" && gemdl_photos[idx]) {
                     const obj = gemdl_photos[idx];
-                    bResults.urls.push(`未実行(キャンセル): https://gemini.google.com/app/${obj[0]}#${obj[1]}`);
+                    bResults.urls.push({ status: "未実行(キャンセル)", url: `https://gemini.google.com/app/${obj[0]}#${obj[1]}` });
                 }
             });
             bQueue = [];
@@ -224,14 +225,19 @@ console.log("GeminiDL mystuff_ui.js");
     function exportResults() {
         if (bResults.urls.length === 0 && !uiHistoryCheckbox.checked) return;
         
-        const header = uiHistoryCheckbox.checked ? "--- GeminiDL Full History Report ---" : "--- GeminiDL Batch Report ---";
-        const content = [header, ...bResults.urls];
-        const text = content.join("\n");
-        const blob = new Blob([text], {type: "text/plain;charset=utf-8"});
+        const header = "0,ステータス,URL";
+        const lines = [header];
+        bResults.urls.forEach((item, i) => {
+            lines.push(`${i + 1},${item.status},${item.url}`);
+        });
+        const text = lines.join("\n");
+        // BOMを付与してExcel文字化けを防ぐ
+        const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+        const blob = new Blob([bom, text], {type: "text/csv;charset=utf-8"});
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
         const prefix = uiHistoryCheckbox.checked ? "gemini_download_history_" : "gemini_download_report_";
-        a.download = prefix + new Date().toISOString().replace(/[:.]/g, "-") + ".txt";
+        a.download = prefix + new Date().toISOString().replace(/[:.]/g, "-") + ".csv";
         a.click();
     }
 
@@ -314,20 +320,20 @@ console.log("GeminiDL mystuff_ui.js");
                 bResults.success++;
                 if(uiSuccess) uiSuccess.textContent = bResults.success;
                 if(uiHistoryCheckbox && uiHistoryCheckbox.checked) {
-                    bResults.urls.push("成功: " + reportUrl);
+                    bResults.urls.push({ status: "成功", url: reportUrl });
                 }
                 reportedAction = true;
                 break;
             case "download_timeout":
                 bResults.timeout++;
                 if(uiTimeout) uiTimeout.textContent = bResults.timeout;
-                bResults.urls.push("タイムアウト: " + reportUrl);
+                bResults.urls.push({ status: "タイムアウト", url: reportUrl });
                 reportedAction = true;
                 break;
             case "download_failed":
                 bResults.failed++;
                 if(uiFailed) uiFailed.textContent = bResults.failed;
-                bResults.urls.push("失敗: " + reportUrl);
+                bResults.urls.push({ status: "エラー", url: reportUrl });
                 reportedAction = true;
                 break;
         }
