@@ -30,6 +30,7 @@
     {
       "matches": ["https://gemini.google.com/*"],
       "js": ["message-helper.js"],
+      "run_at": "document_start",
       "world": "ISOLATED"
     },
     {

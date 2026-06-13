@@ -31,7 +31,9 @@ function tabManager() {
             if (mtab.identifier === identifier) {
                 clearTimeout(mtab.timeoutId);
                 // 既に閉じられているタブに対するremoveのエラーを吸収
-                chrome.tabs.remove(mtab.tab.id).catch(() => {});
+                try {
+                    chrome.tabs.remove(mtab.tab.id).catch(() => {});
+                } catch(e) {}
             } else {
                 remaining.push(mtab);
             }

@@ -180,13 +180,13 @@ console.log("GeminiDL mystuff_ui.js");
         uiBtn.className = "gemdl-batch-btn";
         
         if (bActive > 0 || bQueue.length > 0) {
-            // キャンセルされた場合、残りのキューを一覧の未実行リストとして記録
-            bQueue.forEach(idx => {
-                if (typeof gemdl_photos !== "undefined" && gemdl_photos[idx]) {
-                    const obj = gemdl_photos[idx];
-                    bResults.urls.push({ status: "未実行(キャンセル)", url: `https://gemini.google.com/app/${obj[0]}#${obj[1]}` });
+            // キャンセルされた場合、残りのキューに相当する末尾のアイテムを未実行として更新
+            const cancelStart = bResults.urls.length - bQueue.length;
+            for (let i = cancelStart; i < bResults.urls.length; i++) {
+                if (bResults.urls[i].status === "未実施") {
+                    bResults.urls[i].status = "未実行(キャンセル)";
                 }
-            });
+            }
             bQueue = [];
             exportResults();
         }
@@ -204,6 +204,25 @@ console.log("GeminiDL mystuff_ui.js");
             bQueue.push(i);
         }
         bTotal = bQueue.length;
+
+        // ダウンロード計画順に「未実施」データを作成
+        const match = window.location.pathname.match(/^\/u\/(\d+)\//);
+        let prefix = "/app/";
+        if (match) {
+            prefix = `/u/${match[1]}/app/`;
+        }
+        bQueue.forEach(idx => {
+            if (typeof gemdl_photos !== "undefined" && gemdl_photos[idx]) {
+                const [cid, rid] = gemdl_photos[idx];
+                const itemUrl = window.location.origin + prefix + cid + "#" + rid;
+                bResults.urls.push({
+                    status: "未実施",
+                    url: itemUrl,
+                    identifier: cid + "#" + rid
+                });
+            }
+        });
+
         updateProgress();
         showBanner(""); // showBanner内でテキスト上書きされるが一応
         processQueue();
@@ -234,11 +253,15 @@ console.log("GeminiDL mystuff_ui.js");
     }
 
     function exportResults() {
-        if (bResults.urls.length === 0 && !uiHistoryCheckbox.checked) return;
+        let exportUrls = bResults.urls;
+        if (uiHistoryCheckbox && !uiHistoryCheckbox.checked) {
+            exportUrls = bResults.urls.filter(item => item.status !== "成功" && item.status !== "重複スキップ");
+        }
+        if (exportUrls.length === 0) return;
         
         const header = "0,ステータス,URL";
         const lines = [header];
-        bResults.urls.forEach((item, i) => {
+        exportUrls.forEach((item, i) => {
             lines.push(`${i + 1},${item.status},${item.url}`);
         });
         const text = lines.join("\n");
@@ -318,44 +341,43 @@ console.log("GeminiDL mystuff_ui.js");
         }
     });
 
+    // 指定したidentifierに一致する「未実施」のアイテムを最初から1つ探してステータスを更新する関数
+    function updateItemStatus(identifier, newStatus) {
+        if (!bResults || !bResults.urls) return;
+        const item = bResults.urls.find(u => u.identifier === identifier && u.status === "未実施");
+        if (item) {
+            item.status = newStatus;
+        }
+    }
+
     // --- メッセージ待ち受け：カウンター管理とキューの消費 ---
     window.addEventListener("message", ev => {
-        let reportUrl = "";
+        let identifier = ev.data.identifier;
         let reportedAction = false;
-        if(ev.data.gemdlAction && ev.data.identifier) {
-            const match = window.location.pathname.match(/^\/u\/(\d+)\//);
-            let prefix = "/app/";
-            if (match) {
-                prefix = `/u/${match[1]}/app/`;
-            }
-            reportUrl = window.location.origin + prefix + ev.data.identifier;
-        }
+
         switch (ev.data.gemdlAction) {
             case "download_success":
                 bResults.success++;
                 if(uiSuccess) uiSuccess.textContent = bResults.success;
-                if(uiHistoryCheckbox && uiHistoryCheckbox.checked) {
-                    const statusText = ev.data.isDuplicate ? "重複スキップ" : "成功";
-                    bResults.urls.push({ status: statusText, url: reportUrl });
-                }
+                updateItemStatus(identifier, ev.data.isDuplicate ? "重複スキップ" : "成功");
                 reportedAction = true;
                 break;
             case "download_timeout":
                 bResults.timeout++;
                 if(uiTimeout) uiTimeout.textContent = bResults.timeout;
-                bResults.urls.push({ status: "タイムアウト", url: reportUrl });
+                updateItemStatus(identifier, "タイムアウト");
                 reportedAction = true;
                 break;
             case "download_failed":
                 bResults.failed++;
                 if(uiFailed) uiFailed.textContent = bResults.failed;
-                bResults.urls.push({ status: "エラー", url: reportUrl });
+                updateItemStatus(identifier, "エラー");
                 reportedAction = true;
                 break;
             case "download_button_notfound":
                 bResults.notfound++;
                 if(uiNotfound) uiNotfound.textContent = bResults.notfound;
-                bResults.urls.push({ status: "ボタン未検出", url: reportUrl });
+                updateItemStatus(identifier, "ボタン未検出");
                 reportedAction = true;
                 break;
         }
