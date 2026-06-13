@@ -48,10 +48,11 @@ async function triStageDownload(url, savename) {
             .getElementById(r_id);
         if (!msgGroup) return;
 
-        const dlButton = msgGroup
-            .querySelector("button.generated-image-button");
-        if (!dlButton) return;
+        const dlButtons = msgGroup
+            .querySelectorAll("download-generated-image-button button");
+        if (dlButtons.length === 0) return;
 
+        const dlButton = dlButtons[dlButtons.length - 1];
         dlButton.click();
         clearInterval(itvId);
     }, 500);

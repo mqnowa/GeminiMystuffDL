@@ -25,12 +25,30 @@ fetchSpy(
     }
 );
 
+// 既にダウンロード指示を出した識別子を記憶するSet
+const gemdl_downloaded_identifiers = new Set();
+
 // インデックス番号を指定して画像のダウンロード処理（取得専用タブの起動）をトリガーする
 function gemdl_download(index) {
     if (index < 0 || index >= gemdl_photos.length) return;
     const [cid, rid] = gemdl_photos[index];
     const url = "https://gemini.google.com/app/" + cid + "#" + rid;
     const identifier = cid + "#" + rid;
+    
+    // 同一の cid, rid の場合はタブを開かずにスキップ
+    if (gemdl_downloaded_identifiers.has(identifier)) {
+        console.log("Skipping duplicate download (already processed):", identifier);
+        setTimeout(() => {
+            window.postMessage({
+                gemdlAction: "download_success",
+                identifier: identifier,
+                isDuplicate: true
+            }, "*");
+        }, 0);
+        return;
+    }
+    
+    gemdl_downloaded_identifiers.add(identifier);
     
     // ダウンロード用のタブ（裏タブ）を開くように拡張機能へ指示を転送
     window.postMessage({

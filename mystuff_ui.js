@@ -314,13 +314,13 @@ console.log("GeminiDL mystuff_ui.js");
         if(ev.data.gemdlAction && ev.data.identifier) {
             reportUrl = 'https://gemini.google.com/app/' + ev.data.identifier;
         }
-
         switch (ev.data.gemdlAction) {
             case "download_success":
                 bResults.success++;
                 if(uiSuccess) uiSuccess.textContent = bResults.success;
                 if(uiHistoryCheckbox && uiHistoryCheckbox.checked) {
-                    bResults.urls.push({ status: "成功", url: reportUrl });
+                    const statusText = ev.data.isDuplicate ? "重複スキップ" : "成功";
+                    bResults.urls.push({ status: statusText, url: reportUrl });
                 }
                 reportedAction = true;
                 break;
