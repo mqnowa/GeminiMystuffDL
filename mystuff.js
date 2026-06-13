@@ -79,6 +79,10 @@ window.addEventListener("message", ev => {
         gemdl_batch_status.timeout += 1;
         console.log(gemdl_batch_status);
         break;
+    case "download_button_notfound":
+        gemdl_batch_status.failed += 1;
+        console.log(gemdl_batch_status);
+        break;
     default:
         return;
     }

@@ -6,9 +6,9 @@ console.log("GeminiDL mystuff_ui.js");
     let bMode = "idle"; // 取る値: 'idle', 'select_start', 'select_end', 'downloading'
     let bStart = -1, bEnd = -1;
     let bQueue = [], bActive = 0, bTotal = 0;
-    let bResults = { success: 0, failed: 0, timeout: 0, urls: [] };
+    let bResults = { success: 0, failed: 0, timeout: 0, notfound: 0, urls: [] };
 
-    let uiWidget, uiBtn, uiSuccess, uiFailed, uiTimeout;
+    let uiWidget, uiBtn, uiSuccess, uiFailed, uiTimeout, uiNotfound;
     let uiBanner, uiHistoryCheckbox;
 
     function initBatchUI() {
@@ -26,6 +26,7 @@ console.log("GeminiDL mystuff_ui.js");
             .gemdl-c-s { color: #1e8e3e; font-weight: bold; }
             .gemdl-c-f { color: #d93025; font-weight: bold; }
             .gemdl-c-t { color: #f29900; font-weight: bold; }
+            .gemdl-c-nf { color: #9334e6; font-weight: bold; }
             
             #gemdl-banner { position: fixed; bottom: 0; left: 0; width: 100%; z-index: 9998; background: #1a73e8; color: #fff; text-align: center; padding: 12px; font-weight: bold; font-size: 16px; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s; }
             #gemdl-banner.show { transform: translateY(0); }
@@ -89,9 +90,18 @@ console.log("GeminiDL mystuff_ui.js");
         valT.textContent = "0";
         spanT.appendChild(valT);
 
+        const spanNF = document.createElement("span");
+        spanNF.className = "gemdl-c-nf";
+        spanNF.textContent = "未検出: ";
+        const valNF = document.createElement("span");
+        valNF.id = "gemdl-c-nf-v";
+        valNF.textContent = "0";
+        spanNF.appendChild(valNF);
+
         cDiv.appendChild(spanS);
         cDiv.appendChild(spanF);
         cDiv.appendChild(spanT);
+        cDiv.appendChild(spanNF);
         
         const optLabel = document.createElement("label");
         optLabel.className = "gemdl-history-opt";
@@ -110,6 +120,7 @@ console.log("GeminiDL mystuff_ui.js");
         uiSuccess = document.getElementById("gemdl-c-s-v");
         uiFailed = document.getElementById("gemdl-c-f-v");
         uiTimeout = document.getElementById("gemdl-c-t-v");
+        uiNotfound = document.getElementById("gemdl-c-nf-v");
 
         // --- 下部バナー構築 ---
         uiBanner = document.createElement("div");
@@ -146,7 +157,7 @@ console.log("GeminiDL mystuff_ui.js");
 
     function updateProgress() {
         if (bMode !== "downloading") return;
-        const finished = bResults.success + bResults.failed + bResults.timeout;
+        const finished = bResults.success + bResults.failed + bResults.timeout + bResults.notfound;
         const percent = bTotal > 0 ? (finished / bTotal) * 100 : 0;
         uiBanner.textContent = `ダウンロード中(${finished}/${bTotal})`;
         uiBanner.style.setProperty("--progress", `${percent}%`);
@@ -183,8 +194,8 @@ console.log("GeminiDL mystuff_ui.js");
 
     function startDownloads(sIdx, eIdx) {
         bMode = "downloading";
-        bResults = { success: 0, failed: 0, timeout: 0, urls: [] };
-        uiSuccess.textContent = "0"; uiFailed.textContent = "0"; uiTimeout.textContent = "0";
+        bResults = { success: 0, failed: 0, timeout: 0, notfound: 0, urls: [] };
+        uiSuccess.textContent = "0"; uiFailed.textContent = "0"; uiTimeout.textContent = "0"; uiNotfound.textContent = "0";
         bQueue = [];
         
         // 逆順を考慮してループ
@@ -339,6 +350,12 @@ console.log("GeminiDL mystuff_ui.js");
                 bResults.failed++;
                 if(uiFailed) uiFailed.textContent = bResults.failed;
                 bResults.urls.push({ status: "エラー", url: reportUrl });
+                reportedAction = true;
+                break;
+            case "download_button_notfound":
+                bResults.notfound++;
+                if(uiNotfound) uiNotfound.textContent = bResults.notfound;
+                bResults.urls.push({ status: "ボタン未検出", url: reportUrl });
                 reportedAction = true;
                 break;
         }

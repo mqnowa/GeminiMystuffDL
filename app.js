@@ -43,6 +43,7 @@ async function triStageDownload(url, savename) {
     var download_complete = false;
 
     // 0.5秒おきに読込ボタン(spinner)を監視し、表示されたら画像抽出用のボタンを自動クリック
+    let buttonFound = false;
     const itvId = setInterval(() => {
         const msgGroup = document
             .getElementById(r_id);
@@ -52,10 +53,22 @@ async function triStageDownload(url, savename) {
             .querySelectorAll("download-generated-image-button button");
         if (dlButtons.length === 0) return;
 
+        buttonFound = true;
         const dlButton = dlButtons[dlButtons.length - 1];
         dlButton.click();
         clearInterval(itvId);
     }, 500);
+
+    // 10秒以内にダウンロードボタンが見つからなかった場合、タイムアウトとして失敗を通知
+    setTimeout(() => {
+        if (buttonFound) return;
+        clearInterval(itvId);
+        console.warn("GeminiDL: ダウンロードボタンが10秒以内に見つかりませんでした:", identifier);
+        window.postMessage({
+            gemdlAction: "download_button_notfound",
+            identifier: identifier
+        }, "*");
+    }, 10000);
 
     // batchexecute (APIの通信)をインターセプトし、画像生URLを横取りして直接ダウンロードを実施
     fetchSpy(/.+\/batchexecute.+rpcids=c8o8Fe.+/, text => {

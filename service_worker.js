@@ -64,7 +64,7 @@ function tabManager() {
                             gemdlAction: "download_timeout",
                             identifier: msg.identifier
                         });
-                    }, 60000);
+                    }, 90000);
                     // 監視リストに追加
                     managed_tabs.push({
                         tab: tab,
@@ -75,6 +75,7 @@ function tabManager() {
                 break;
             case "download_failed":
             case "download_success":
+            case "download_button_notfound":
                 // 3. ダウンロード指令が完了(成功/失敗)したら、対象タブのタイムアウトを解除して素早くタブを閉じる
                 console.log("download status", msg);
                 removeManagedTab(msg.identifier);
