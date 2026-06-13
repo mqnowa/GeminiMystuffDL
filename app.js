@@ -79,6 +79,12 @@ async function triStageDownload(url, savename) {
                     identifier: identifier
                 }, "*");
             }
+        }).catch(() => {
+            // ネットワークエラー等で例外が発生した場合、速やかに失敗を通知して並行枠を解放する
+            window.postMessage({
+                gemdlAction: "download_failed",
+                identifier: identifier
+            }, "*");
         })
     }, true);
     
