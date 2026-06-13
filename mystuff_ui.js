@@ -1,4 +1,4 @@
-// mystuff_ui.js: /mystuff ページにおけるメニューUI描画や一括ダウンロードボタンなどのユーザ操作を管理するためのファイル
+// mystuff_ui.js: /library ページにおけるメニューUI描画や一括ダウンロードボタンなどのユーザ操作を管理するためのファイル
 console.log("GeminiDL mystuff_ui.js");
 
 (function() {
@@ -35,11 +35,11 @@ console.log("GeminiDL mystuff_ui.js");
             .gemdl-history-opt input { cursor: pointer; }
             
             /* カードの角丸に追従させた美しいオーバレイハイライト */
-            library-item-card.gemdl-range-highlight::after { 
+            .library-item-card.gemdl-range-highlight::after { 
                 content: '';
                 position: absolute;
                 inset: 0; /* width / height 100% と同義 */
-                border-radius: 16px; /* Gemini風の角丸 */
+                border-radius: inherit; /* 親要素の角丸を継承 */
                 box-shadow: inset 0 0 0 4px #1a73e8; /* 内側にボーダーを描画 */
                 background: rgba(26, 115, 232, 0.2); /* 全体を薄いブルーで染める */
                 pointer-events: none; /* マウスのイベントを貫通させる */
@@ -47,10 +47,10 @@ console.log("GeminiDL mystuff_ui.js");
                 transition: opacity 0.2s;
             }
             
-            library-item-card { position: relative; }
-            .gemdl-dl-btn { position: absolute; top: 8px; right: 8px; z-index: 100; background: rgba(0,0,0,0.6); color: white; border-radius: 50%; width: 32px; height: 32px; display: none; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
+            .library-item-card { position: relative; }
+            .gemdl-dl-btn { position: absolute; top: 8px; left: 8px; z-index: 100; background: rgba(0,0,0,0.6); color: white; border-radius: 50%; width: 32px; height: 32px; display: none; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
             .gemdl-dl-btn:hover { background: rgba(0,0,0,0.8); transform: scale(1.1); }
-            library-item-card:hover .gemdl-dl-btn { display: flex; }
+            .library-item-card:hover .gemdl-dl-btn { display: flex; }
         `;
         (document.head || document.documentElement).appendChild(style);
 
@@ -154,11 +154,11 @@ console.log("GeminiDL mystuff_ui.js");
     }
 
     function clearHighlights() {
-        document.querySelectorAll("library-item-card.gemdl-range-highlight").forEach(el => el.classList.remove("gemdl-range-highlight"));
+        document.querySelectorAll(".library-item-card.gemdl-range-highlight").forEach(el => el.classList.remove("gemdl-range-highlight"));
     }
 
     function getCardIndex(card) {
-        return Array.from(document.querySelectorAll("library-item-card")).indexOf(card);
+        return Array.from(document.querySelectorAll(".library-item-card")).indexOf(card);
     }
 
     function cancelBatch() {
@@ -244,7 +244,7 @@ console.log("GeminiDL mystuff_ui.js");
     // --- クリックのキャプチャ（選択モードの制御） ---
     document.addEventListener("click", (e) => {
         if (bMode !== "select_start" && bMode !== "select_end") return;
-        const card = e.target.closest("library-item-card");
+        const card = e.target.closest(".library-item-card");
         if (card) {
             // モード中は画像プレビューを阻止する
             e.preventDefault();
@@ -266,7 +266,7 @@ console.log("GeminiDL mystuff_ui.js");
 
     // --- ホバーによる UI ハイライト制御 ---
     document.addEventListener("mouseover", (e) => {
-        const card = e.target.closest("library-item-card");
+        const card = e.target.closest(".library-item-card");
         if (!card) return;
 
         // （以前実装した）1枚のみダウンロード用のホバーボタンの追加管理
@@ -299,7 +299,7 @@ console.log("GeminiDL mystuff_ui.js");
                 // 開始点～現在のホバー点までを青くする
                 const s = Math.min(bStart, idx);
                 const e = Math.max(bStart, idx);
-                const allCards = Array.from(document.querySelectorAll("library-item-card"));
+                const allCards = Array.from(document.querySelectorAll(".library-item-card"));
                 for (let i = s; i <= e; i++) {
                     if (allCards[i]) allCards[i].classList.add("gemdl-range-highlight");
                 }
@@ -312,7 +312,12 @@ console.log("GeminiDL mystuff_ui.js");
         let reportUrl = "";
         let reportedAction = false;
         if(ev.data.gemdlAction && ev.data.identifier) {
-            reportUrl = 'https://gemini.google.com/app/' + ev.data.identifier;
+            const match = window.location.pathname.match(/^\/u\/(\d+)\//);
+            let prefix = "/app/";
+            if (match) {
+                prefix = `/u/${match[1]}/app/`;
+            }
+            reportUrl = window.location.origin + prefix + ev.data.identifier;
         }
         switch (ev.data.gemdlAction) {
             case "download_success":

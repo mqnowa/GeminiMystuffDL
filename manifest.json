@@ -34,8 +34,8 @@
     },
     {
       "matches": [
-        "https://gemini.google.com/mystuff",
-        "https://gemini.google.com/u/*/mystuff"
+        "https://gemini.google.com/library",
+        "https://gemini.google.com/u/*/library"
       ],
       "js": [
         "module.js",

@@ -1,4 +1,4 @@
-// mystuff.js: マイアクティビティ一覧(/mystuff)で稼働し、画像リストの取得と連続ダウンロードの進行を管理
+// mystuff.js: マイライブラリ一覧(/library)で稼働し、画像リストの取得と連続ダウンロードの進行を管理
 console.log("GeminiDL mystuff.js");
 
 // 捕捉したすべての画像の固有IDリストと、一括ダウンロードの処理ステータス集計カウンター
@@ -32,7 +32,12 @@ const gemdl_downloaded_identifiers = new Set();
 function gemdl_download(index) {
     if (index < 0 || index >= gemdl_photos.length) return;
     const [cid, rid] = gemdl_photos[index];
-    const url = "https://gemini.google.com/app/" + cid + "#" + rid;
+    const match = window.location.pathname.match(/^\/u\/(\d+)\//);
+    let prefix = "/app/";
+    if (match) {
+        prefix = `/u/${match[1]}/app/`;
+    }
+    const url = window.location.origin + prefix + cid + "#" + rid;
     const identifier = cid + "#" + rid;
     
     // 同一の cid, rid の場合はタブを開かずにスキップ
